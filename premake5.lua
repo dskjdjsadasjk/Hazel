@@ -23,9 +23,10 @@ include "Hazel/vendor/imgui"
 
 project "Hazel"
 	location "Hazel"
-	kind "SharedLib"
+	kind "StaticLib"
 	language "C++"
-	staticruntime "off"
+	cppdialect "C++17"
+	staticruntime "on"
 
 	targetdir("bin/" .. outputdir .. "/%{prj.name}")
 	objdir("bin_int/" .. outputdir .. "/%{prj.name}")
@@ -37,6 +38,11 @@ project "Hazel"
 	{
 		"%{prj.name}/src/**.h",
 		"%{prj.name}/src/**.cpp"
+	}
+	
+	defines
+	{
+		"_CRT_SECURE_NO_WARNINGS"
 	}
 
 	includedirs
@@ -58,7 +64,6 @@ project "Hazel"
 	}
 
 	filter "system:windows"
-		cppdialect "C++17"
 		systemversion "latest"
 
 		defines
@@ -68,11 +73,6 @@ project "Hazel"
 			"GLFW_INCLUDE_NONE"
 		}
 
-		postbuildcommands
-		{
-			("{MKDIR} ../bin/" .. outputdir .. "/Sandbox"),
-			("{COPYFILE} %{cfg.buildtarget.relpath} \"../bin/".. outputdir .. "/Sandbox/\"")
-		}
 
 	filter"configurations:Debug"
 		runtime "Debug"
@@ -83,17 +83,19 @@ project "Hazel"
 		runtime "Release"
 		buildoptions "/utf-8"
 		defines "HZ_RELEASE"
-		symbols "On"
+		optimize "On"
 	filter"configurations:Dist"
 		runtime "Release"
 		buildoptions "/utf-8"
 		defines "HZ_DIST"
-		symbols "On"
+		optimize "On"
 
 project "Sandbox"
 	location "Sandbox"
 	kind "ConsoleApp"
-	staticruntime "off"
+	language "C++"
+	cppdialect "C++17"
+	staticruntime "on"
 
 	language "C++"
 
@@ -122,7 +124,6 @@ project "Sandbox"
 	}
 
 	filter "system:windows"
-		cppdialect "C++17"
 		systemversion "latest"
 
 		defines
