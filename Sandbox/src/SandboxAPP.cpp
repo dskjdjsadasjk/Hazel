@@ -1,16 +1,18 @@
 #include<Hazel.h>
+#include<Hazel/Core/EntryPoint.h>
+
 #include "Platform/OpenGL/OpenGLShader.h"
 #include"imgui/imgui.h"
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
-
+#include "Sandbox2D.h"
 class ExampleLayer :public Hazel::Layer
 {
 public:
 	ExampleLayer()
 		:Layer("Example"),m_CameraController(1280.f/720.f,true)
 	{
-		m_VertexArray.reset(Hazel::VertexArray::Create());
+		m_VertexArray=Hazel::VertexArray::Create();
 
 		float vertices[3 * 7] = {
 			-0.5f,-0.5f,0.0f,0.8f,0.2f,0.8f,1.0f,
@@ -18,7 +20,7 @@ public:
 			0.0f,0.5f,0.0f,0.8f,0.8f,0.2f,1.0f,
 		};
 		Hazel::Ref<Hazel::VertexBuffer> m_VertexBuffer;
-		m_VertexBuffer.reset(Hazel::VertexBuffer::Create(vertices, sizeof(vertices)));
+		m_VertexBuffer=Hazel::VertexBuffer::Create(vertices, sizeof(vertices));
 
 		Hazel::BufferLayout layout = {
 			{Hazel::ShaderDataType::Float3,"a_Position"},
@@ -32,10 +34,10 @@ public:
 		unsigned int  indices[3] = { 0,1,2 };
 
 		Hazel::Ref<Hazel::IndexBuffer> m_IndexBuffer;
-		m_IndexBuffer.reset(Hazel::IndexBuffer::Create(indices, sizeof(indices) / sizeof(unsigned int)));
+		m_IndexBuffer=Hazel::IndexBuffer::Create(indices, sizeof(indices) / sizeof(unsigned int));
 		m_VertexArray->SetIndexBuffer(m_IndexBuffer);
 
-		m_SquareVA.reset(Hazel::VertexArray::Create());
+		m_SquareVA=Hazel::VertexArray::Create();
 		float squarevertices[5 * 4] = {
 			-0.5f, -0.5f,  0.0f,  0.0f, 0.0f,
 			 0.5f, -0.5f,  0.0f,  1.0f, 0.0f,
@@ -43,7 +45,7 @@ public:
 			-0.5f,  0.5f,  0.0f,  0.0f, 1.0f
 		};
 		Hazel::Ref<Hazel::VertexBuffer> suqareVB;
-		suqareVB.reset(Hazel::VertexBuffer::Create(squarevertices, sizeof(squarevertices)));
+		suqareVB=Hazel::VertexBuffer::Create(squarevertices, sizeof(squarevertices));
 		suqareVB->SetLayout({
 			{Hazel::ShaderDataType::Float3,"a_Position"},
 			{Hazel::ShaderDataType ::Float2,"a_TexCoord"}
@@ -52,7 +54,7 @@ public:
 		unsigned int  squareindices[6] = { 0,1,2,2,3,0 };
 
 		Hazel::Ref<Hazel::IndexBuffer> squareIB;
-		squareIB.reset(Hazel::IndexBuffer::Create(squareindices, sizeof(squareindices) / sizeof(unsigned int)));
+		squareIB=Hazel::IndexBuffer::Create(squareindices, sizeof(squareindices) / sizeof(unsigned int));
 		m_SquareVA->SetIndexBuffer(squareIB);
 		std::string vertextSrc = R"(
 			#version 330 core
@@ -194,7 +196,8 @@ class Sandbox: public Hazel::Application
 public:
 	Sandbox()
 	{
-		PushLayer(new ExampleLayer());
+		//PushLayer(new ExampleLayer());
+		PushLayer(new Sandbox2D());
 		//PushOverlay	(new Hazel::ImGuiLayer());
 	}
 	~Sandbox()

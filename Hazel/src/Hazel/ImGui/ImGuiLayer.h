@@ -13,7 +13,7 @@ namespace Hazel {
 
 		virtual void OnAttach();
 		virtual void OnDetach();
-		virtual void OnImGuiRender();
+		//virtual void OnImGuiRender();
 		void Begin();
 		void End();
 	private:
