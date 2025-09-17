@@ -13,7 +13,7 @@ namespace Hazel {
 	class HAZEL_API Application
 	{
 	public:
-		Application();
+		Application(const std::string& name="Hazel App");
 		virtual ~Application();
 		void Run();
 
@@ -23,6 +23,9 @@ namespace Hazel {
 		void PushOverlay(Layer* layer);
 
 		inline Window& GetWindow() { return *m_Window; }
+
+		void Close();
+
 		static inline Application& Get() { return *s_Instance; }
 	private:
 		bool OnWindowClosed(WindowCloseEvent& e);

@@ -28,6 +28,8 @@ namespace Hazel {
 		OrthographicCamera& GetCamera() { return m_Camera; }
 		const OrthographicCamera& GetCamera() const { return m_Camera; }
 
+		void OnResize(float width,float height);
+
 		void SetZoomLevel(float level) { m_ZoomLevel = level; }
 		float GetZoomLevel() { return m_ZoomLevel; }
 

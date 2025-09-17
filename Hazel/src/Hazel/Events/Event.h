@@ -29,8 +29,6 @@ namespace Hazel {
 
 	class HAZEL_API Event
 	{
-		friend class EventDispatcher;
-		friend class Application;
 	public:
 		virtual EventType GetEventType() const = 0;
 		virtual const char* GetName() const = 0;
@@ -40,7 +38,8 @@ namespace Hazel {
 		{
 			return GetCategoryFlags() & category;
 		}
-	protected:
+
+
 		bool m_Handled = false;
 	};
 	class EventDispatcher

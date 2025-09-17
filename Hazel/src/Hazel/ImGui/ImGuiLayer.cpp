@@ -96,6 +96,13 @@ namespace Hazel {
 			glfwMakeContextCurrent(backup_current_cotext);
 		}
 	}
+
+	void ImGuiLayer::OnEvent(Event& e)
+	{
+		ImGuiIO& io = ImGui::GetIO();
+		e.m_Handled |= e.IsInCategory(EventCategoryMouse) & io.WantCaptureMouse;
+		e.m_Handled |= e.IsInCategory(EventCategoryKeyBoard) & io.WantCaptureKeyboard;
+	}
 	/*
 	void ImGuiLayer::OnImGuiRender()
 	{

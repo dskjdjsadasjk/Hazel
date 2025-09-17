@@ -24,6 +24,7 @@ private:
 	Hazel::Ref<Hazel::Texture2D> m_SpriteSheet;
 	Hazel::Ref<Hazel::SubTexture2D> m_TextureStairs;
 	Hazel::Ref<Hazel::SubTexture2D> m_TextureTree;
+	Hazel::Ref<Hazel::Framebuffer> m_Framebuffer;
 	
 	//struct ProfileResult
 	//{

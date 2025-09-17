@@ -1,6 +1,6 @@
 workspace "Hazel"
 	architecture "x64"
-	startproject "Sandbox"
+	startproject "Hazelnut"
 	configurations
 	{
 		"Debug",
@@ -18,9 +18,11 @@ IncludeDir["ImGui"] = "Hazel/vendor/imgui"
 IncludeDir["glm"] = "Hazel/vendor/glm"
 IncludeDir["stb_image"] = "Hazel/vendor/stb_image"
 
-include "Hazel/vendor/GLFW"
-include "Hazel/vendor/Glad"
-include "Hazel/vendor/imgui"
+group "Dependencies"
+	include "Hazel/vendor/GLFW"
+	include "Hazel/vendor/Glad"
+	include "Hazel/vendor/imgui"
+group ""
 
 project "Hazel"
 	location "Hazel"
@@ -98,6 +100,63 @@ project "Hazel"
 
 project "Sandbox"
 	location "Sandbox"
+	kind "ConsoleApp"
+	language "C++"
+	cppdialect "C++17"
+	staticruntime "on"
+
+	language "C++"
+
+	targetdir("bin/"..outputdir.."/%{prj.name}")
+	objdir("bin_int/"..outputdir.."/%{prj.name}")
+
+	files
+	{
+		"%{prj.name}/src/**.h",
+		"%{prj.name}/src/**.cpp",
+		"%{prj.name}/vendor/glm/glm/**.h",
+		"%{prj.name}/vendor/glm/glm/**.inl"
+	}
+
+	includedirs
+	{
+		"Hazel/vendor/spdlog/include",
+		"Hazel/src",
+		"Hazel/vendor",
+		"%{IncludeDir.glm}"
+	}
+
+	links
+	{
+		"Hazel"
+	}
+
+	filter "system:windows"
+		systemversion "latest"
+
+		defines
+		{
+			"HZ_PLATFORM_WINDOWS"
+		}
+
+	filter"configurations:Debug"
+		runtime "Debug"
+		buildoptions "/utf-8"
+		defines "HZ_DEBUG"
+		symbols "On"
+	filter"configurations:Release"
+		runtime "Release"
+		buildoptions "/utf-8"
+		defines "HZ_RELEASE"
+		optimize "On"
+	filter"configurations:Dist"
+		runtime "Release"
+		buildoptions "/utf-8"
+		defines "HZ_DIST"
+		optimize "On"
+
+project "Hazelnut"
+	location "Hazelnut"
 	kind "ConsoleApp"
 	language "C++"
 	cppdialect "C++17"

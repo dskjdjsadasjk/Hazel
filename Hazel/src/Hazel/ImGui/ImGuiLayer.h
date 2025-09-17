@@ -16,6 +16,7 @@ namespace Hazel {
 		//virtual void OnImGuiRender();
 		void Begin();
 		void End();
+		virtual void OnEvent(Event& e);
 	private:
 		float m_Time = 0.0f;
 	};
