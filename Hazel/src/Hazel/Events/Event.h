@@ -39,6 +39,7 @@ namespace Hazel {
 			return GetCategoryFlags() & category;
 		}
 
+		virtual ~Event() = default;
 
 		bool m_Handled = false;
 	};
