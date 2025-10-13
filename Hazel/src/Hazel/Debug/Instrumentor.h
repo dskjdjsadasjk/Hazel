@@ -4,7 +4,7 @@
 #include <chrono>
 #include <algorithm>
 #include <fstream>
-
+#include <sstream>
 #include <thread>
 namespace Hazel {
 	struct ProfileResult
