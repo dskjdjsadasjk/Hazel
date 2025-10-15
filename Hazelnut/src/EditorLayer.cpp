@@ -9,7 +9,6 @@
 #include "Hazel/Math/Math.h"
 #include <chrono>
 
-
 namespace Hazel
 {
 	EditorLayer::EditorLayer()
@@ -26,7 +25,7 @@ namespace Hazel
 		// Init here
 		
 		FramebufferSpecification fbSpec;
-		fbSpec.Attachments = { FramebufferTextureFormat::RGBA8, FramebufferTextureFormat::RGBA8, FramebufferTextureFormat::Depth };
+		fbSpec.Attachments = { FramebufferTextureFormat::RGBA8, FramebufferTextureFormat::RED_INTEGER, FramebufferTextureFormat::Depth };
 		fbSpec.Width = 1280;
 		fbSpec.Height = 720;
 		m_Framebuffer = Framebuffer::Create(fbSpec);
@@ -101,11 +100,27 @@ namespace Hazel
 		m_Framebuffer->Bind();
 		RenderCommand::SetClearColor({ 0.1f,0.1f,0.1f,1 });
 		RenderCommand::Clear();
+
+		m_Framebuffer->ClearAttachment(1, -1);
 		
 
 		//Renderer2D::BeginScene(m_CameraController.GetCamera());
 
 		m_ActiveScene->OnUpdateEditor(ts, m_EditorCamera);
+
+		auto [mx, my] = ImGui::GetMousePos();
+		mx -= m_ViewportBounds[0].x;
+		my -= m_ViewportBounds[0].y;
+		glm::vec2 viewportSize = m_ViewportBounds[1] - m_ViewportBounds[0];
+		my = viewportSize.y - my;
+		int mouseX = (int)mx;
+		int mouseY = (int)my;
+
+		if (mouseX >= 0 && mouseY >= 0 && mouseX < (int)viewportSize.x && mouseY < (int)viewportSize.y)
+		{
+			int pixelData = m_Framebuffer->ReadPixel(1, mouseX, mouseY);
+			m_HoveredEntity = pixelData == -1 ? Entity() : Entity((entt::entity)pixelData, m_ActiveScene.get());
+		}
 		//Renderer2D::EndScene();
 		m_Framebuffer->UnBind();
 
@@ -187,6 +202,11 @@ namespace Hazel
 
 		ImGui::Begin("Stats");
 
+		std::string name = "None";
+		if (m_HoveredEntity)
+			name = m_HoveredEntity.GetComponent<TagComponent>().Tag;
+		ImGui::Text("Hovered Entity: %s", name.c_str());
+
 		auto stats = Renderer2D::GetStats();
 		ImGui::Text("Renderer2D Stats:");
 		ImGui::Text("DrawCalls: %d", stats.DrawCalls);
@@ -198,12 +218,14 @@ namespace Hazel
 
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{ 0,0 });
 		ImGui::Begin("Viewport");
+		auto viewportOffset = ImGui::GetCursorPos();
 
 		m_ViewportFocused = ImGui::IsWindowFocused();
 		m_ViewportHovered = ImGui::IsWindowHovered();
 		Application::Get().GetImGuiLayer()->BlockEvents(!m_ViewportFocused && !m_ViewportHovered);
 
 		ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail();
+		auto windowSize = viewportPanelSize;
 		if (m_ViewportSize != *((glm::vec2*)&viewportPanelSize))
 		{
 			m_ViewportSize = { viewportPanelSize.x,viewportPanelSize.y };
@@ -215,8 +237,22 @@ namespace Hazel
 
 			m_ActiveScene->OnViewportResize((uint32_t)m_ViewportSize.x, (uint32_t)m_ViewportSize.y);
 		}
-		uint32_t textureID = m_Framebuffer->GetColorAttachmentRendererID(1);
+		uint32_t textureID = m_Framebuffer->GetColorAttachmentRendererID();
 		ImGui::Image((void*)textureID, ImVec2{ m_ViewportSize.x,m_ViewportSize.y },ImVec2{0,1},ImVec2{1,0});
+
+		//通过获得光表位置知道视口左上角相对窗口，然后加上窗口左上角，得到准确的屏幕位置
+		//auto windowSize = ImGui::GetWindowSize();
+		ImVec2 minBound = ImGui::GetWindowPos();
+
+		minBound.x += viewportOffset.x;
+		minBound.y += viewportOffset.y;
+
+		ImVec2 maxBound = { minBound.x + windowSize.x,minBound.y + windowSize.y };
+		m_ViewportBounds[0] = { minBound.x,minBound.y };
+		m_ViewportBounds[1] = { maxBound.x,maxBound.y };
+
+		//HZ_CORE_WARN("Min Bounds={0},{1}", m_ViewportBounds[0].x, m_ViewportBounds[0].y);
+		//HZ_CORE_WARN("Max Bounds={0},{1}", m_ViewportBounds[1].x, m_ViewportBounds[1].y);
 
 		Entity selectedEntity = m_SceneHierarchyPanel.GetSelectedEntity();
 		if (selectedEntity && m_GizmoType != -1)
@@ -288,6 +324,7 @@ namespace Hazel
 
 		EventDispatcher dispatcher(event);
 		dispatcher.Dispatch<KeyPressedEvent>(HZ_BIND_EVENT_FN(EditorLayer::OnKeyPressed));
+		dispatcher.Dispatch<MouseButtonPressedEvent>(HZ_BIND_EVENT_FN(EditorLayer::OnMouseButtonPressed));
 	}
 	bool EditorLayer::OnKeyPressed(KeyPressedEvent& e)
 	{
@@ -333,6 +370,15 @@ namespace Hazel
 				m_GizmoType = ImGuizmo::OPERATION::SCALE;
 				break;
 		}
+	}
+	bool EditorLayer::OnMouseButtonPressed(MouseButtonPressedEvent& e)
+	{
+		if (e.GetMouseButton() == Mouse::ButtonLeft)
+		{
+			if(m_ViewportHovered&&!ImGuizmo::IsOver()&&!Input::IsKeyPressed(HZ_KEY_LEFT_ALT))
+				m_SceneHierarchyPanel.SetSelectedEntity(m_HoveredEntity);
+		}
+		return false;
 	}
 	void EditorLayer::NewScene()
 	{

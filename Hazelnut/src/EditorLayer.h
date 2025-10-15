@@ -19,6 +19,7 @@ namespace Hazel
 		void OnEvent(Event& event) override;
 	private:
 		bool OnKeyPressed(KeyPressedEvent& e);
+		bool OnMouseButtonPressed(MouseButtonPressedEvent& e);
 
 		void NewScene();
 		void OpenScene();
@@ -33,6 +34,7 @@ namespace Hazel
 		Entity m_SquareEntity;
 		Entity m_SecondCamera;
 		Entity m_CameraEntity;
+		Entity m_HoveredEntity;
 		Ref<Scene> m_ActiveScene;
 
 		bool m_PrimaryCamera = true;
@@ -43,6 +45,7 @@ namespace Hazel
 
 		bool m_ViewportFocused = false, m_ViewportHovered = false;;
 		glm::vec2 m_ViewportSize = { 0,0 };
+		glm::vec2 m_ViewportBounds[2];
 
 		glm::vec4 m_SquareColor = { 0.2f,0.3f,0.8f,1.0f };
 
