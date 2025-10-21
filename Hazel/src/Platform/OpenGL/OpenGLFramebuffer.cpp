@@ -101,12 +101,14 @@ namespace Hazel {
 
 		Invalidate();
 	}
+
 	OpenGLFramebuffer::~OpenGLFramebuffer()
 	{
 		glDeleteFramebuffers(1, &m_RendererID);
 		glDeleteTextures(m_ColorAttachments.size(), m_ColorAttachments.data());
 		glDeleteTextures(1, &m_DepthAttachment);
 	}
+
 	void OpenGLFramebuffer::Invalidate()
 	{
 		if (m_RendererID)
@@ -170,16 +172,19 @@ namespace Hazel {
 
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	}
+
 	void OpenGLFramebuffer::Bind()
 	{
 		glBindFramebuffer(GL_FRAMEBUFFER, m_RendererID);
 		glViewport(0, 0, m_Specification.Width, m_Specification.Height);
 
 	}
+
 	void OpenGLFramebuffer::UnBind()
 	{
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	}
+
 	void OpenGLFramebuffer::Resize(uint32_t width, uint32_t height)
 	{
 		if (width == 0 || height == 0 || width > s_MaxFramebufferSize || height > s_MaxFramebufferSize)
@@ -191,6 +196,7 @@ namespace Hazel {
 
 		Invalidate();
 	}
+
 	int OpenGLFramebuffer::ReadPixel(uint32_t attachmentIndex, int x, int y)
 	{
 		HZ_CORE_ASSERT(attachmentIndex < m_ColorAttachments.size(), "read attach > size");
@@ -201,6 +207,7 @@ namespace Hazel {
 		glReadPixels(x, y, 1, 1, GL_RED_INTEGER, GL_INT, &pixelData);
 		return pixelData;
 	}
+
 	void OpenGLFramebuffer::ClearAttachment(uint32_t attachmentIndex, int value)
 	{
 		HZ_CORE_ASSERT(attachmentIndex < m_ColorAttachments.size(), " > size");
