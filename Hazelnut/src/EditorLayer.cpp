@@ -11,6 +11,9 @@
 
 namespace Hazel
 {
+
+	extern const std::filesystem::path g_AssetPath;
+
 	EditorLayer::EditorLayer()
 		:Layer("EditorLayer"), m_CameraController(1280.f / 720.f, true)
 	{
@@ -134,6 +137,7 @@ namespace Hazel
 		static bool dockspaceOpen = true;
 		static bool opt_fullscreen_persistant = true;
 		static ImGuiDockNodeFlags opt_flags = ImGuiDockNodeFlags_None;
+		opt_flags &= ~ImGuiDockNodeFlags_PassthruDockspace;
 		bool opt_fullscreen = opt_fullscreen_persistant;
 
 		// We are using the ImGuiWindowFlags_NoDocking flag to make the parent window not dockable into,
@@ -241,6 +245,16 @@ namespace Hazel
 		uint32_t textureID = m_Framebuffer->GetColorAttachmentRendererID();
 		ImGui::Image((void*)textureID, ImVec2{ m_ViewportSize.x,m_ViewportSize.y },ImVec2{0,1},ImVec2{1,0});
 
+		if (ImGui::BeginDragDropTarget())
+		{
+			if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM"))
+			{
+				const wchar_t* path = (const wchar_t*)payload->Data;
+				OpenScene(std::filesystem::path(g_AssetPath) / path);
+			}
+			ImGui::EndDragDropTarget();
+		}
+
 		//通过获得光表位置知道视口左上角相对窗口，然后加上窗口左上角，得到准确的屏幕位置
 		//auto windowSize = ImGui::GetWindowSize();
 		ImVec2 minBound = ImGui::GetWindowPos();
@@ -303,6 +317,8 @@ namespace Hazel
 			}
 		}
 		ImGui::End();
+
+
 		ImGui::PopStyleVar();
 
 		/*
@@ -392,14 +408,20 @@ namespace Hazel
 		std::string filepath = FileDialogs::OpenFile("Hazel Scene (*.hazel)\0*.hazel\0");
 		if (!filepath.empty())
 		{
-			m_ActiveScene = CreateRef<Scene>();
-			m_ActiveScene->OnViewportResize((uint32_t)m_ViewportSize.x, (uint32_t)m_ViewportSize.y);
-			m_SceneHierarchyPanel.SetContext(m_ActiveScene);
-
-			SceneSerializer serializer(m_ActiveScene);
-			serializer.Deserialize(filepath);
+			OpenScene(filepath);
 		}
 	}
+
+	void EditorLayer::OpenScene(const std::filesystem::path& path)
+	{
+		m_ActiveScene = CreateRef<Scene>();
+		m_ActiveScene->OnViewportResize((uint32_t)m_ViewportSize.x, (uint32_t)m_ViewportSize.y);
+		m_SceneHierarchyPanel.SetContext(m_ActiveScene);
+
+		SceneSerializer serializer(m_ActiveScene);
+		serializer.Deserialize(path.string());
+	}
+
 	void EditorLayer::SaveSceneAs()
 	{
 		std::string filepath = FileDialogs::SaveFile("Hazel Scene (*.hazel)\0*.hazel\0");
