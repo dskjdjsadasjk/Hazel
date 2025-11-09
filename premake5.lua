@@ -14,6 +14,7 @@ outputdir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
 IncludeDir = {}
 IncludeDir["GLFW"] = "Hazel/vendor/GLFW/include"
 IncludeDir["Glad"] = "Hazel/vendor/Glad/include"
+IncludeDir["Box2D"] = "Hazel/vendor/Box2D/include"
 IncludeDir["ImGui"] = "Hazel/vendor/imgui"
 IncludeDir["glm"] = "Hazel/vendor/glm"
 IncludeDir["stb_image"] = "Hazel/vendor/stb_image"
@@ -23,6 +24,7 @@ IncludeDir["ImGuizmo"] = "Hazel/vendor/ImGuizmo"
 
 group "Dependencies"
 	include "Hazel/vendor/GLFW"
+	include "Hazel/vendor/Box2D"
 	include "Hazel/vendor/Glad"
 	include "Hazel/vendor/imgui"
 	include "Hazel/vendor/yaml-cpp"
@@ -64,6 +66,7 @@ project "Hazel"
 		"%{prj.name}/vendor/spdlog/include",
 		"%{prj.name}/src",
 		"%{IncludeDir.GLFW}",
+		"%{IncludeDir.Box2D}",
 		"%{IncludeDir.Glad}",
 		"%{IncludeDir.ImGui}",
 		"%{IncludeDir.glm}",
@@ -75,6 +78,7 @@ project "Hazel"
 
 	links
 	{
+		"Box2D",
 		"GLFW",
 		"Glad",
 		"ImGui",

@@ -10,7 +10,7 @@
 #include <glm/gtc/type_ptr.hpp>
 
 namespace Hazel {
-	
+
 	struct QuadVertex
 	{
 		glm::vec3 Position;
@@ -22,21 +22,41 @@ namespace Hazel {
 		int EntityID;
 	};
 
+	struct CircleVertex
+	{
+		glm::vec3 WorldPosition;
+		glm::vec3 LocalPosition;
+		glm::vec4 Color;
+		float Thickness;
+		float Fade;
+
+		// Editor-only
+		int EntityID;
+	};
+
 	struct Renderer2DData
 	{
 		static const uint32_t MaxQuads = 20000;
-		static const uint32_t MaxVertices = MaxQuads*4;
-		static const uint32_t MaxIndices = MaxQuads*6;
+		static const uint32_t MaxVertices = MaxQuads * 4;
+		static const uint32_t MaxIndices = MaxQuads * 6;
 		static const uint32_t MaxTexturesSlots = 32;
 
 		Ref<VertexArray> QuadVertexArray;
 		Ref<VertexBuffer> QuadVertexBuffer;
-		Ref<Shader> TextureShader;
+		Ref<Shader> QuadShader;
 		Ref<Texture2D> WhiteTexture;
+
+		Ref<VertexArray> CircleVertexArray;
+		Ref<VertexBuffer> CircleVertexBuffer;
+		Ref<Shader> CircleShader;
 
 		uint32_t QuadIndexCount = 0;
 		QuadVertex* QuadVertexBufferBase = nullptr;
 		QuadVertex* QuadVertexBufferPtr = nullptr;
+
+		uint32_t CircleIndexCount = 0;
+		CircleVertex* CircleVertexBufferBase = nullptr;
+		CircleVertex* CircleVertexBufferPtr = nullptr;
 
 		std::array<Ref<Texture2D>, MaxTexturesSlots> TextureSlots;
 		uint32_t TextureSlotIndex = 1;
@@ -60,7 +80,7 @@ namespace Hazel {
 		HZ_PROFILE_FUNCTION();
 
 		s_Data.QuadVertexArray = VertexArray::Create();
-		s_Data.QuadVertexBuffer=VertexBuffer::Create(s_Data.MaxVertices*sizeof(QuadVertex));
+		s_Data.QuadVertexBuffer = VertexBuffer::Create(s_Data.MaxVertices * sizeof(QuadVertex));
 		s_Data.QuadVertexBuffer->SetLayout({
 			{ ShaderDataType::Float3,"a_Position"},
 			{ ShaderDataType::Float4,"a_Color"},
@@ -90,9 +110,24 @@ namespace Hazel {
 		}
 
 		Ref<IndexBuffer> squareIB;
-		squareIB=IndexBuffer::Create(quadIndices,s_Data.MaxIndices);
+		squareIB = IndexBuffer::Create(quadIndices, s_Data.MaxIndices);
 		s_Data.QuadVertexArray->SetIndexBuffer(squareIB);
 		delete[] quadIndices;
+
+		s_Data.CircleVertexArray = VertexArray::Create();
+
+		s_Data.CircleVertexBuffer = VertexBuffer::Create(s_Data.MaxVertices * sizeof(CircleVertex));
+		s_Data.CircleVertexBuffer->SetLayout({
+			{ ShaderDataType::Float3, "a_WorldPosition" },
+			{ ShaderDataType::Float3, "a_LocalPosition" },
+			{ ShaderDataType::Float4, "a_Color"         },
+			{ ShaderDataType::Float,  "a_Thickness"     },
+			{ ShaderDataType::Float,  "a_Fade"          },
+			{ ShaderDataType::Int,    "a_EntityID"      }
+			});
+		s_Data.CircleVertexArray->AddVertexBuffer(s_Data.CircleVertexBuffer);
+		s_Data.CircleVertexArray->SetIndexBuffer(squareIB);
+		s_Data.CircleVertexBufferBase = new CircleVertex[s_Data.MaxVertices];
 
 		s_Data.WhiteTexture = Texture2D::Create(1, 1);
 		uint32_t whiteTextureData = 0xffffffff;
@@ -103,16 +138,19 @@ namespace Hazel {
 		{
 			samplers[i] = i;
 		}
-		s_Data.TextureShader = Shader::Create("assets/shaders/Texture.glsl");
-		s_Data.TextureShader->Bind();
-		s_Data.TextureShader->SetIntArray("u_Textures",samplers,s_Data.MaxTexturesSlots);
+		s_Data.QuadShader = Shader::Create("assets/shaders/Renderer2D_Quad.glsl");
+		s_Data.CircleShader = Shader::Create("assets/shaders/Renderer2D_Circle.glsl");
+
+		//改用该语法后不需要一个个绑定layout (binding = 0) uniform sampler2D u_Textures[32];
+		//s_Data.QuadShader->Bind();
+		//s_Data.QuadShader->SetIntArray("u_Textures", samplers, s_Data.MaxTexturesSlots);
 
 		//memset(s_Data.TextureSlots.data(), 0, s_Data.TextureSlots.size() * sizeof(uint32_t));
 		s_Data.TextureSlots[0] = s_Data.WhiteTexture;
 
 		s_Data.QuadVertexPositions[0] = { -0.5f,-0.5f,0.0f,1.0f };
-		s_Data.QuadVertexPositions[1] = {  0.5f,-0.5f,0.0f,1.0f };
-		s_Data.QuadVertexPositions[2] = {  0.5f, 0.5f,0.0f,1.0f };
+		s_Data.QuadVertexPositions[1] = { 0.5f,-0.5f,0.0f,1.0f };
+		s_Data.QuadVertexPositions[2] = { 0.5f, 0.5f,0.0f,1.0f };
 		s_Data.QuadVertexPositions[3] = { -0.5f, 0.5f,0.0f,1.0f };
 
 		s_Data.CameraUniformBuffer = UniformBuffer::Create(sizeof(Renderer2DData::CameraData), 0);
@@ -126,8 +164,8 @@ namespace Hazel {
 	{
 		HZ_PROFILE_FUNCTION();
 
-		s_Data.TextureShader->Bind();
-		s_Data.TextureShader->SetMat4("u_ViewProjection", camera.GetViewProjectionMatrix());
+		s_Data.QuadShader->Bind();
+		s_Data.QuadShader->SetMat4("u_ViewProjection", camera.GetViewProjectionMatrix());
 
 		s_Data.QuadIndexCount = 0;
 		s_Data.QuadVertexBufferPtr = s_Data.QuadVertexBufferBase;
@@ -142,8 +180,16 @@ namespace Hazel {
 		s_Data.CameraBuffer.ViewProjection = camera.GetViewProjection();
 		s_Data.CameraUniformBuffer->SetData(&s_Data.CameraBuffer, sizeof(Renderer2DData::CameraData));
 
+		StartBatch();
+	}
+
+	void Renderer2D::StartBatch()
+	{
 		s_Data.QuadIndexCount = 0;
 		s_Data.QuadVertexBufferPtr = s_Data.QuadVertexBufferBase;
+
+		s_Data.CircleIndexCount = 0;
+		s_Data.CircleVertexBufferPtr = s_Data.CircleVertexBufferBase;
 
 		s_Data.TextureSlotIndex = 1;
 	}
@@ -152,34 +198,49 @@ namespace Hazel {
 	{
 		HZ_PROFILE_FUNCTION();
 
-		glm::mat4 viewProj = camera.GetProjection() * glm::inverse(transform);
+		s_Data.CameraBuffer.ViewProjection = camera.GetProjection() * glm::inverse(transform);
+		s_Data.CameraUniformBuffer->SetData(&s_Data.CameraBuffer, sizeof(Renderer2DData::CameraData));
 
-		s_Data.TextureShader->Bind();
-		s_Data.TextureShader->SetMat4("u_ViewProjection", viewProj);
-
-		s_Data.QuadIndexCount = 0;
-		s_Data.QuadVertexBufferPtr = s_Data.QuadVertexBufferBase;
-
-		s_Data.TextureSlotIndex = 1;
+		StartBatch();
 	}
 
 	void Renderer2D::EndScene()
 	{
 		HZ_PROFILE_FUNCTION();
-
-		uint32_t dataSize = (uint8_t*)s_Data.QuadVertexBufferPtr - (uint8_t*)s_Data.QuadVertexBufferBase;
-		s_Data.QuadVertexBuffer->SetData(s_Data.QuadVertexBufferBase, dataSize);
 		Flush();
 	}
 
 	void Renderer2D::Flush()
 	{
-		for (uint32_t i = 0; i < s_Data.TextureSlotIndex; i++)
+		if (s_Data.QuadIndexCount)
 		{
-			s_Data.TextureSlots[i]->Bind(i);
+			uint32_t dataSize = (uint32_t)((uint8_t*)s_Data.QuadVertexBufferPtr - (uint8_t*)s_Data.QuadVertexBufferBase);
+			s_Data.QuadVertexBuffer->SetData(s_Data.QuadVertexBufferBase, dataSize);
+
+			// Bind textures
+			for (uint32_t i = 0; i < s_Data.TextureSlotIndex; i++)
+				s_Data.TextureSlots[i]->Bind(i);
+
+			s_Data.QuadShader->Bind();
+			RenderCommand::DrawIndexed(s_Data.QuadVertexArray, s_Data.QuadIndexCount);
+			s_Data.Stats.DrawCalls++;
 		}
-		RenderCommand::DrawIndexed(s_Data.QuadVertexArray, s_Data.QuadIndexCount);
-		s_Data.Stats.DrawCalls++;
+
+		if (s_Data.CircleIndexCount)
+		{
+			uint32_t dataSize = (uint32_t)((uint8_t*)s_Data.CircleVertexBufferPtr - (uint8_t*)s_Data.CircleVertexBufferBase);
+			s_Data.CircleVertexBuffer->SetData(s_Data.CircleVertexBufferBase, dataSize);
+
+			s_Data.CircleShader->Bind();
+			RenderCommand::DrawIndexed(s_Data.CircleVertexArray, s_Data.CircleIndexCount);
+			s_Data.Stats.DrawCalls++;
+		}
+	}
+
+	void Renderer2D::NextBatch()
+	{
+		Flush();
+		StartBatch();
 	}
 
 	void Renderer2D::FlushAndReset()
@@ -192,12 +253,12 @@ namespace Hazel {
 		s_Data.TextureSlotIndex = 1;
 	}
 
-	void Renderer2D::DrawQuad(const glm::vec2& position, const glm::vec2& size, const glm::vec4 color)
+	void Renderer2D::DrawQuad(const glm::vec2& position, const glm::vec2& size, const glm::vec4& color)
 	{
 		DrawQuad({ position.x,position.y,0.0f }, size, color);
 	}
 
-	void Renderer2D::DrawQuad(const glm::vec3& position, const glm::vec2& size, const glm::vec4 color)
+	void Renderer2D::DrawQuad(const glm::vec3& position, const glm::vec2& size, const glm::vec4& color)
 	{
 		HZ_PROFILE_FUNCTION();
 
@@ -206,19 +267,19 @@ namespace Hazel {
 
 		DrawQuad(transform, color);
 
-		
-		/*s_Data.TextureShader->SetFloat3("u_TilingFactor", 1.0f);
+
+		/*s_Data.QuadShader->SetFloat3("u_TilingFactor", 1.0f);
 		s_Data.whiteTexture->Bind();
 
 		glm::mat4 transform = glm::translate(glm::mat4(1.0f), position) * glm::scale(glm::mat4(1.0f), { size.x,size.y,1.0f });
-		s_Data.TextureShader->SetMat4("u_Transform", transform);
+		s_Data.QuadShader->SetMat4("u_Transform", transform);
 
 		s_Data.QuadVertexArray->Bind();
 		RenderCommand::DrawIndexed(s_Data.QuadVertexArray);*/
 	}
 	void Renderer2D::DrawQuad(const glm::vec2& position, const glm::vec2& size, const Ref<Texture2D>& texture, float tilingFactor, const glm::vec4& tintColor)
 	{
-		DrawQuad({ position.x,position.y,0 }, size, texture,tilingFactor,tintColor);
+		DrawQuad({ position.x,position.y,0 }, size, texture, tilingFactor, tintColor);
 	}
 	void Renderer2D::DrawQuad(const glm::vec3& position, const glm::vec2& size, const Ref<Texture2D>& texture, float tilingFactor, const glm::vec4& tintColor)
 	{
@@ -248,7 +309,7 @@ namespace Hazel {
 		const Ref<Texture2D> texture = subtexture->GetTexture();
 
 		if (s_Data.QuadIndexCount >= Renderer2DData::MaxIndices)
-			FlushAndReset();
+			NextBatch();
 
 		float textureIndex = 0;
 		for (uint32_t i = 0; i < s_Data.TextureSlotIndex; i++)
@@ -301,13 +362,13 @@ namespace Hazel {
 
 		s_Data.Stats.QuadCount++;
 #if OLD_PATH
-		s_Data.TextureShader->SetFloat4("u_Color", tintColor);
-		s_Data.TextureShader->SetFloat3("u_TilingFactor", tilingFactor);
+		s_Data.QuadShader->SetFloat4("u_Color", tintColor);
+		s_Data.QuadShader->SetFloat3("u_TilingFactor", tilingFactor);
 		//s_Data.whiteTexture->Bind();
 		texture->Bind();
 
 		glm::mat4 transform = glm::translate(glm::mat4(1.0f), position) * glm::scale(glm::mat4(1.0f), { size.x,size.y,1.0f });
-		s_Data.TextureShader->SetMat4("u_Transform", transform);
+		s_Data.QuadShader->SetMat4("u_Transform", transform);
 
 		s_Data.QuadVertexArray->Bind();
 		RenderCommand::DrawIndexed(s_Data.QuadVertexArray);
@@ -318,7 +379,7 @@ namespace Hazel {
 		HZ_PROFILE_FUNCTION();
 
 		if (s_Data.QuadIndexCount >= Renderer2DData::MaxIndices)
-			FlushAndReset();
+			NextBatch();
 
 		const float textureIndex = 0.0f;
 		const float tilingFactor = 1.0f;
@@ -364,7 +425,7 @@ namespace Hazel {
 		HZ_PROFILE_FUNCTION();
 
 		constexpr size_t quadVertexCount = 4;
-		constexpr glm::vec4 color = { 1.0f,1.0f,1.0f,1.0f };
+		glm::vec4 color = tintColor;
 		constexpr glm::vec2 textureCoords[] = {
 			{0.0f,0.0f},
 			{1.0f,0.0f},
@@ -373,7 +434,7 @@ namespace Hazel {
 		};
 
 		if (s_Data.QuadIndexCount >= Renderer2DData::MaxIndices)
-			FlushAndReset();
+			NextBatch();
 
 		float textureIndex = 0;
 		for (uint32_t i = 0; i < s_Data.TextureSlotIndex; i++)
@@ -387,6 +448,8 @@ namespace Hazel {
 
 		if (textureIndex == 0.0f)
 		{
+			if (s_Data.TextureSlotIndex >= Renderer2DData::MaxTexturesSlots)
+				NextBatch();
 			textureIndex = s_Data.TextureSlotIndex;
 			s_Data.TextureSlots[s_Data.TextureSlotIndex] = texture;
 			s_Data.TextureSlotIndex++;
@@ -428,23 +491,23 @@ namespace Hazel {
 
 		s_Data.Stats.QuadCount++;
 #if OLD_PATH
-		s_Data.TextureShader->SetFloat4("u_Color", tintColor);
-		s_Data.TextureShader->SetFloat3("u_TilingFactor", tilingFactor);
+		s_Data.QuadShader->SetFloat4("u_Color", tintColor);
+		s_Data.QuadShader->SetFloat3("u_TilingFactor", tilingFactor);
 		//s_Data.whiteTexture->Bind();
 		texture->Bind();
 
 		glm::mat4 transform = glm::translate(glm::mat4(1.0f), position) * glm::scale(glm::mat4(1.0f), { size.x,size.y,1.0f });
-		s_Data.TextureShader->SetMat4("u_Transform", transform);
+		s_Data.QuadShader->SetMat4("u_Transform", transform);
 
 		s_Data.QuadVertexArray->Bind();
 		RenderCommand::DrawIndexed(s_Data.QuadVertexArray);
 #endif
 	}
-	void Renderer2D::DrawRotateQuad(const glm::vec2& position, const glm::vec2& size, float rotation, const glm::vec4 color)
+	void Renderer2D::DrawRotateQuad(const glm::vec2& position, const glm::vec2& size, float rotation, const glm::vec4& color)
 	{
 		DrawRotateQuad({ position.x,position.y,0 }, size, rotation, color);
 	}
-	void Renderer2D::DrawRotateQuad(const glm::vec3& position, const glm::vec2& size, float rotation, const glm::vec4 color)
+	void Renderer2D::DrawRotateQuad(const glm::vec3& position, const glm::vec2& size, float rotation, const glm::vec4& color)
 	{
 		HZ_PROFILE_FUNCTION();
 
@@ -490,16 +553,16 @@ namespace Hazel {
 
 		s_Data.Stats.QuadCount++;
 	}
-	void Renderer2D::DrawRotateQuad(const glm::vec2& position, const glm::vec2& size, float rotation, const Ref<Texture2D>& texture, float tilingFactor, const glm::vec4& tintColor )
+	void Renderer2D::DrawRotateQuad(const glm::vec2& position, const glm::vec2& size, float rotation, const Ref<Texture2D>& texture, float tilingFactor, const glm::vec4& tintColor)
 	{
-		DrawRotateQuad({ position.x,position.y,0 }, size, rotation, texture,tilingFactor,tintColor);
+		DrawRotateQuad({ position.x,position.y,0 }, size, rotation, texture, tilingFactor, tintColor);
 	}
-	void Renderer2D::DrawRotateQuad(const glm::vec3& position, const glm::vec2& size, float rotation, const Ref<Texture2D>& texture, float tilingFactor, const glm::vec4& tintColor )
+	void Renderer2D::DrawRotateQuad(const glm::vec3& position, const glm::vec2& size, float rotation, const Ref<Texture2D>& texture, float tilingFactor, const glm::vec4& tintColor)
 	{
 		HZ_PROFILE_FUNCTION();
 
 		if (s_Data.QuadIndexCount >= Renderer2DData::MaxIndices)
-			FlushAndReset();
+			NextBatch();
 
 		constexpr glm::vec4 color = { 1.0f,1.0f,1.0f,1.0f };
 
@@ -561,12 +624,13 @@ namespace Hazel {
 	{
 		DrawRotateQuad({ position.x,position.y,0 }, size, rotation, subtexture, tilingFactor, tintColor);
 	}
+
 	void Renderer2D::DrawRotateQuad(const glm::vec3& position, const glm::vec2& size, float rotation, const Ref<SubTexture2D>& subtexture, float tilingFactor, const glm::vec4& tintColor)
 	{
 		HZ_PROFILE_FUNCTION();
 
 		if (s_Data.QuadIndexCount >= Renderer2DData::MaxIndices)
-			FlushAndReset();
+			NextBatch();
 
 		constexpr glm::vec4 color = { 1.0f,1.0f,1.0f,1.0f };
 		const glm::vec2* textureCoords = subtexture->GetTexCoords();
@@ -625,10 +689,39 @@ namespace Hazel {
 
 		s_Data.Stats.QuadCount++;
 	}
+
+	void Renderer2D::DrawCircle(const glm::mat4& transform, const glm::vec4& color, float thickness, float fade, int entityID)
+	{
+		HZ_PROFILE_FUNCTION();
+
+		// TODO: implement for circles
+		// if (s_Data.QuadIndexCount >= Renderer2DData::MaxIndices)
+		// 	NextBatch();
+
+		for (size_t i = 0; i < 4; i++)
+		{
+			s_Data.CircleVertexBufferPtr->WorldPosition = transform * s_Data.QuadVertexPositions[i];
+			s_Data.CircleVertexBufferPtr->LocalPosition = s_Data.QuadVertexPositions[i] * 2.0f;
+			s_Data.CircleVertexBufferPtr->Color = color;
+			s_Data.CircleVertexBufferPtr->Thickness = thickness;
+			s_Data.CircleVertexBufferPtr->Fade = fade;
+			s_Data.CircleVertexBufferPtr->EntityID = entityID;
+			s_Data.CircleVertexBufferPtr++;
+		}
+
+		s_Data.CircleIndexCount += 6;
+
+		s_Data.Stats.QuadCount++;
+	}
+
 	void Renderer2D::DrawSprite(const glm::mat4& transform, SpriteRendererComponent& src, int entityID)
 	{
-		DrawQuad(transform, src.Color, entityID);
+		if (src.Texture)
+			DrawQuad(transform, src.Texture, src.TilingFactor, src.Color, entityID);
+		else
+			DrawQuad(transform, src.Color, entityID);
 	}
+
 	void Renderer2D::ResetStats()
 	{
 		memset(&s_Data.Stats, 0, sizeof(Statistics));
@@ -638,5 +731,5 @@ namespace Hazel {
 	{
 		return s_Data.Stats;
 	}
-	
+
 }

@@ -26,6 +26,16 @@ namespace Hazel
 		void OpenScene();
 		void OpenScene(const std::filesystem::path& path);
 		void SaveSceneAs();
+		void SaveScene();
+
+		void SerializeScene(Ref<Scene> scene, const std::filesystem::path& path);
+
+		void OnScenePlay();
+		void OnSceneStop();
+
+		void OnDuplicateEntity();
+
+		void UI_Toolbar();
 	private:
 		OrthographicCameraController m_CameraController;
 
@@ -37,7 +47,10 @@ namespace Hazel
 		Entity m_SecondCamera;
 		Entity m_CameraEntity;
 		Entity m_HoveredEntity;
+
 		Ref<Scene> m_ActiveScene;
+		Ref<Scene> m_EditorScene;
+		std::filesystem::path m_EditorScenePath;
 
 		bool m_PrimaryCamera = true;
 
@@ -53,8 +66,17 @@ namespace Hazel
 
 		int m_GizmoType = -1;
 
+		enum class SceneState
+		{
+			Edit = 0, Play = 1
+		};
+
+		SceneState m_SceneState = SceneState::Edit;
+
 		SceneHierarchyPanel m_SceneHierarchyPanel;
 		ContentBrowserPanel m_ContentBrowserPanel;
+
+		Ref<Texture2D> m_IconPlay, m_IconStop;
 	};
 }
 
