@@ -9,6 +9,7 @@
 #include "Hazel/Math/Math.h"
 #include <chrono>
 
+
 namespace Hazel
 {
 
@@ -36,9 +37,21 @@ namespace Hazel
 		m_Framebuffer = Framebuffer::Create(fbSpec);
 
 		m_ActiveScene = CreateRef<Scene>();
+		std::vector<std::string> paths = {
+			"resources/SkyBox/right.jpg",
+			"resources/SkyBox/left.jpg",
+			"resources/SkyBox/top.jpg",
+			"resources/SkyBox/bottom.jpg",
+			"resources/SkyBox/front.jpg",
+			"resources/SkyBox/back.jpg",
+		};
+		m_ActiveScene->SetSkyBox(CreateRef<SkyBox>(paths));
+
+		m_ActiveScene->m_Framebuffer = m_Framebuffer;
+		m_ActiveScene->m_ShadowFramebuffer = m_ShadowFramebuffer;
 
 		m_EditorScene = m_ActiveScene;
-
+		 
 		m_EditorCamera = EditorCamera(30.0f, 1.778f, 0.1f, 1000.0f);
 
 		auto square = m_ActiveScene->CreateEntity("Square");
@@ -51,6 +64,13 @@ namespace Hazel
 		m_SecondCamera = m_ActiveScene->CreateEntity("Camera Entity2");
 		auto& cc=m_SecondCamera.AddComponent<CameraComponent>();
 		cc.Primary = false;
+
+		auto light = m_ActiveScene->CreateEntity("Light");
+		light.AddComponent<LightComponent>(glm::vec3{ 5.0, 5.0, 5.0 });
+		light.AddComponent<CircleRendererComponent>();
+
+		auto model = m_ActiveScene->CreateEntity("Model");
+		model.AddComponent<ModelComponent>(CreateRef<Model>("Resources/Model/backpack/backpack.obj"));
 
 		class CameraController :public ScriptableEntity
 		{
@@ -97,8 +117,10 @@ namespace Hazel
 		HZ_PROFILE_FUNCTION();
 
 		m_EditorCamera.OnUpdate(ts);
+		frameRate = 1 / ts.GetSeconds();
 
 		Renderer2D::ResetStats();
+		Renderer3D::ResetStats();
 		m_Framebuffer->Bind();
 		RenderCommand::SetClearColor({ 0.1f,0.1f,0.1f,1 });
 		RenderCommand::Clear();
@@ -229,16 +251,17 @@ namespace Hazel
 		ImGui::Begin("Stats");
 
 		std::string name = "None";
-		if (m_HoveredEntity)
-			name = m_HoveredEntity.GetComponent<TagComponent>().Tag;
+		//if (m_HoveredEntity)
+			//name = m_HoveredEntity.GetComponent<TagComponent>().Tag;
 		ImGui::Text("Hovered Entity: %s", name.c_str());
 
-		auto stats = Renderer2D::GetStats();
+		auto stats = Renderer3D::GetStats();
 		ImGui::Text("Renderer2D Stats:");
 		ImGui::Text("DrawCalls: %d", stats.DrawCalls);
 		ImGui::Text("Quads: %d", stats.QuadCount);
 		ImGui::Text("Vertices: %d", stats.GetTotalVertexCount());
 		ImGui::Text("Indices: %d", stats.GetTotalIndexCount());
+		ImGui::Text("FrameRate: %f", frameRate);
 
 		ImGui::End();
 

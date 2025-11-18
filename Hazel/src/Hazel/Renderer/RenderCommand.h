@@ -3,12 +3,12 @@
 #include "RendererAPI.h"
 
 namespace Hazel {
+
 	class RenderCommand
 	{
 	public:
 		inline static void Init()
 		{
-
 			s_RendererAPI->Init();
 		}
 
@@ -20,13 +20,21 @@ namespace Hazel {
 		{
 			s_RendererAPI->SetClearColor(color);
 		}
-		inline static  void Clear()
+		inline static void Clear()
 		{
 			s_RendererAPI->Clear();
 		}
 		inline static void DrawIndexed(const Ref<VertexArray>& vertexArray,uint32_t count=0)
 		{
 			s_RendererAPI->DrawIndexed(vertexArray,count);
+		}
+		inline static void DrawArray(uint32_t arrayBegin, uint32_t count = 0)
+		{
+			s_RendererAPI->DrawArrays(arrayBegin, count);
+		}
+		inline static void SetDepth(DepthType depthType)
+		{
+			s_RendererAPI->SetDepth(depthType);
 		}
 	private:
 		static RendererAPI* s_RendererAPI;

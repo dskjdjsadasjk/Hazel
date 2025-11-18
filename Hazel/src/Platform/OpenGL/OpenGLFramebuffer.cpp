@@ -9,61 +9,91 @@ namespace Hazel {
 
 	namespace Utils {
 
-		static GLenum TextureTarget(bool multisampled)
+		static GLenum TextureTarget(bool multisampled, FramebufferTextureTarget target)
 		{
-			return multisampled ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D;
+			if (multisampled)
+				return GL_TEXTURE_2D_MULTISAMPLE;
+
+			switch (target)
+			{
+			case FramebufferTextureTarget::TextureCube: return GL_TEXTURE_CUBE_MAP;
+			default: return GL_TEXTURE_2D;
+			}
 		}
 
-		static void CreateTextures(bool multisampled, uint32_t* outID, uint32_t count)
+		static void CreateTextures(bool multisampled, FramebufferTextureTarget target, uint32_t* outID, uint32_t count)
 		{
-			glCreateTextures(TextureTarget(multisampled), count, outID);
+			glCreateTextures(TextureTarget(multisampled, target), count, outID);
 		}
 
-		static void BindTexture(bool multisampled, uint32_t id)
+		static void BindTexture(bool multisampled, FramebufferTextureTarget target, uint32_t id)
 		{
-			glBindTexture(TextureTarget(multisampled), id);
+			glBindTexture(TextureTarget(multisampled, target), id);
 		}
 
-		static void AttachColorTexture(uint32_t id, int samples, GLenum internalFormat, GLenum format, uint32_t width, uint32_t height, int index)
+		static void AttachColorTexture(uint32_t id, int samples, GLenum internalFormat, GLenum format, uint32_t width, uint32_t height, int index, FramebufferTextureTarget target)
 		{
 			bool multisampled = samples > 1;
+			GLenum texTarget = TextureTarget(multisampled, target);
+
 			if (multisampled)
 			{
 				glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, samples, internalFormat, width, height, GL_FALSE);
 			}
+			else if (target == FramebufferTextureTarget::TextureCube)
+			{
+				for (uint32_t face = 0; face < 6; face++)
+					glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + face, 0, internalFormat, width, height, 0, format, GL_UNSIGNED_BYTE, nullptr);
+			}
 			else
 			{
 				glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, format, GL_UNSIGNED_BYTE, nullptr);
-
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 			}
 
-			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + index, TextureTarget(multisampled), id, 0);
+			glTexParameteri(texTarget, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+			glTexParameteri(texTarget, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+			glTexParameteri(texTarget, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+			glTexParameteri(texTarget, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+			glTexParameteri(texTarget, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+			if(target == FramebufferTextureTarget::TextureCube)
+				glTexParameteri(texTarget, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + index, texTarget, id, 0);
 		}
 
-		static void AttachDepthTexture(uint32_t id, int samples, GLenum format, GLenum attachmentType, uint32_t width, uint32_t height)
+		static void AttachDepthTexture(uint32_t id, int samples, GLenum format, GLenum attachmentType, uint32_t width, uint32_t height, FramebufferTextureTarget target)
 		{
 			bool multisampled = samples > 1;
+			GLenum texTarget = TextureTarget(multisampled, target);
+
 			if (multisampled)
 			{
 				glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, samples, format, width, height, GL_FALSE);
 			}
+			else if (target == FramebufferTextureTarget::TextureCube)
+			{
+				for (uint32_t face = 0; face < 6; face++)
+					glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + face, 0, GL_DEPTH_COMPONENT, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
+			}
 			else
 			{
 				glTexStorage2D(GL_TEXTURE_2D, 1, format, width, height);
-
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+				glFramebufferTexture2D(GL_FRAMEBUFFER, attachmentType, texTarget, id, 0);
 			}
 
-			glFramebufferTexture2D(GL_FRAMEBUFFER, attachmentType, TextureTarget(multisampled), id, 0);
+			glTexParameteri(texTarget, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+			glTexParameteri(texTarget, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+			glTexParameteri(texTarget, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+			glTexParameteri(texTarget, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+			glTexParameteri(texTarget, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+			if (target == FramebufferTextureTarget::TextureCube)
+				glTexParameteri(texTarget, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+			
+			if (target == FramebufferTextureTarget::TextureCube)
+				glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, id, 0);
+			else
+				glFramebufferTexture2D(GL_FRAMEBUFFER, attachmentType, texTarget, id, 0);
 		}
 
 		static bool IsDepthFormat(FramebufferTextureFormat format)
@@ -109,6 +139,23 @@ namespace Hazel {
 		glDeleteTextures(1, &m_DepthAttachment);
 	}
 
+	static const char* FramebufferStatusToString(GLenum status)
+	{
+		switch (status)
+		{
+		case GL_FRAMEBUFFER_COMPLETE: return "GL_FRAMEBUFFER_COMPLETE";
+		case GL_FRAMEBUFFER_UNDEFINED: return "GL_FRAMEBUFFER_UNDEFINED";
+		case GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT: return "GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT";
+		case GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT: return "GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT";
+		case GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER: return "GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER";
+		case GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER: return "GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER";
+		case GL_FRAMEBUFFER_UNSUPPORTED: return "GL_FRAMEBUFFER_UNSUPPORTED";
+		case GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE: return "GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE";
+		case GL_FRAMEBUFFER_INCOMPLETE_LAYER_TARGETS: return "GL_FRAMEBUFFER_INCOMPLETE_LAYER_TARGETS";
+		default: return "UNKNOWN_ERROR";
+		}
+	}
+
 	void OpenGLFramebuffer::Invalidate()
 	{
 		if (m_RendererID)
@@ -128,18 +175,18 @@ namespace Hazel {
 		if (m_ColorAttachmentSpecifications.size())
 		{
 			m_ColorAttachments.resize(m_ColorAttachmentSpecifications.size());
-			Utils::CreateTextures(multisample, m_ColorAttachments.data(), m_ColorAttachments.size());
+			Utils::CreateTextures(multisample, m_Specification.Target, m_ColorAttachments.data(), m_ColorAttachments.size());
 
 			for (size_t i = 0; i < m_ColorAttachments.size(); i++)
 			{
-				Utils::BindTexture(multisample, m_ColorAttachments[i]);
+				Utils::BindTexture(multisample, m_Specification.Target, m_ColorAttachments[i]);
 				switch (m_ColorAttachmentSpecifications[i].TextureFormat)
 				{
 					case FramebufferTextureFormat::RGBA8:
-						Utils::AttachColorTexture(m_ColorAttachments[i], m_Specification.Samples, GL_RGBA8, GL_RGBA, m_Specification.Width, m_Specification.Height, i);
+						Utils::AttachColorTexture(m_ColorAttachments[i], m_Specification.Samples, GL_RGBA8, GL_RGBA, m_Specification.Width, m_Specification.Height, i, m_Specification.Target);
 						break;
 					case FramebufferTextureFormat::RED_INTEGER:
-						Utils::AttachColorTexture(m_ColorAttachments[i], m_Specification.Samples, GL_R32I, GL_RED_INTEGER, m_Specification.Width, m_Specification.Height, i);
+						Utils::AttachColorTexture(m_ColorAttachments[i], m_Specification.Samples, GL_R32I, GL_RED_INTEGER, m_Specification.Width, m_Specification.Height, i, m_Specification.Target);
 						break;
 				}
 			}
@@ -147,12 +194,12 @@ namespace Hazel {
 
 		if (m_DepthAttachmentSpecification.TextureFormat != FramebufferTextureFormat::None)
 		{
-			Utils::CreateTextures(multisample, &m_DepthAttachment, 1);
-			Utils::BindTexture(multisample, m_DepthAttachment);
+			Utils::CreateTextures(multisample, m_Specification.Target, &m_DepthAttachment, 1);
+			Utils::BindTexture(multisample, m_Specification.Target, m_DepthAttachment);
 			switch (m_DepthAttachmentSpecification.TextureFormat)
 			{
 				case FramebufferTextureFormat::DEPTH24STENCIL8:
-					Utils::AttachDepthTexture(m_DepthAttachment, m_Specification.Samples, GL_DEPTH24_STENCIL8, GL_DEPTH_ATTACHMENT, m_Specification.Width, m_Specification.Height);
+					Utils::AttachDepthTexture(m_DepthAttachment, m_Specification.Samples, GL_DEPTH24_STENCIL8, GL_DEPTH_ATTACHMENT, m_Specification.Width, m_Specification.Height, m_Specification.Target);
 					break;
 			}
 		}
@@ -166,18 +213,21 @@ namespace Hazel {
 		else if (m_ColorAttachments.empty())
 		{
 			glDrawBuffer(GL_NONE);
+			glReadBuffer(GL_NONE);
 		}
-
+		GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+		HZ_CORE_ASSERT(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE, FramebufferStatusToString(status));
 		HZ_CORE_ASSERT(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE, "Framebffer is incomplete!");
 
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	}
 
+	
+
 	void OpenGLFramebuffer::Bind()
 	{
 		glBindFramebuffer(GL_FRAMEBUFFER, m_RendererID);
 		glViewport(0, 0, m_Specification.Width, m_Specification.Height);
-
 	}
 
 	void OpenGLFramebuffer::UnBind()
@@ -203,7 +253,7 @@ namespace Hazel {
 
 		glReadBuffer(GL_COLOR_ATTACHMENT0 + attachmentIndex);
 		int pixelData;
-		//第一个是读取什么数据，第二个是觉得读取到内存使用的格式
+		//绗竴涓槸璇诲彇浠�涔堟暟鎹紝绗簩涓槸瑙夊緱璇诲彇鍒板唴瀛樹娇鐢ㄧ殑鏍煎紡
 		glReadPixels(x, y, 1, 1, GL_RED_INTEGER, GL_INT, &pixelData);
 		return pixelData;
 	}

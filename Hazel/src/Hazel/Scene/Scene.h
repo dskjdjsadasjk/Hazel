@@ -6,6 +6,8 @@
 #include "Hazel/Core/Timestep.h"
 #include "Hazel/Core/UUID.h"
 #include "Hazel/Renderer/EditorCamera.h"
+#include "Hazel/Renderer/Framebuffer.h"
+#include "SkyBox.h"
 
 class b2World;
 
@@ -34,6 +36,8 @@ namespace Hazel {
 		void DuplicateEntity(Entity entity);
 
 		Entity GetPrimaryCameraEntity();
+
+		void SetSkyBox(Ref<SkyBox> sky);
 	private:
 		template<typename T>
 		void OnComponentAdded(Entity entity, T& component);
@@ -43,9 +47,15 @@ namespace Hazel {
 
 		b2World* m_PhysicsWorld = nullptr;
 
+		Ref<SkyBox> skyBox;
+
 		friend class SceneSerializer;
 		friend class Entity;
 		friend class SceneHierarchyPanel;
 
+//TODO::以后优化改进场景的渲染
+	public:
+		Ref<Framebuffer> m_Framebuffer;
+		Ref<Framebuffer> m_ShadowFramebuffer;
 	};
 }

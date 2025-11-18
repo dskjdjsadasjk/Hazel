@@ -4,6 +4,13 @@
 
 namespace Hazel {
 
+	enum class FramebufferTextureTarget
+	{
+		None = 0,
+		Texture2D,
+		TextureCube
+	};
+
 	enum class FramebufferTextureFormat
 	{
 		None = 0,
@@ -46,6 +53,7 @@ namespace Hazel {
 		uint32_t Samples = 1;
 
 		bool SwapChainTarget = false;
+		FramebufferTextureTarget Target = FramebufferTextureTarget::Texture2D;
 	};
 
 	class Framebuffer
@@ -59,6 +67,7 @@ namespace Hazel {
 		virtual int ReadPixel(uint32_t attachementIndex, int x, int y) = 0;
 
 		virtual uint32_t GetColorAttachmentRendererID(uint32_t index = 0) const = 0;
+		virtual uint32_t GetDepthAttachmentRendererID() const = 0;
 		virtual void ClearAttachment(uint32_t attachmentIndex, int value) = 0;
 
 		virtual const FramebufferSpecification& GetSpecification() const = 0;

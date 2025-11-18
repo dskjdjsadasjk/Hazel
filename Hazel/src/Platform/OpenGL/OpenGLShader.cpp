@@ -13,6 +13,8 @@ namespace Hazel {
 			return GL_VERTEX_SHADER;
 		if (type == "fragment" || type == "pixel")
 			return GL_FRAGMENT_SHADER;
+		if (type == "geometry")
+			return GL_GEOMETRY_SHADER;
 
 		HZ_CORE_ASSERT(false, "Unknown shader type!");
 		return 0;
@@ -95,13 +97,26 @@ namespace Hazel {
 		}
 		return shaderSources;
 	}
+
+	std::string GetShaderTypeString(GLenum type) {
+		switch (type) {
+		case GL_VERTEX_SHADER: return "VERTEX";
+		case GL_FRAGMENT_SHADER: return "FRAGMENT";
+		case GL_GEOMETRY_SHADER: return "GEOMETRY";
+		case GL_TESS_CONTROL_SHADER: return "TESS_CONTROL";
+		case GL_TESS_EVALUATION_SHADER: return "TESS_EVALUATION";
+		case GL_COMPUTE_SHADER: return "COMPUTE";
+		default: return "UNKNOWN";
+		}
+	}
+
 	void OpenGLShader::Compile(std::unordered_map<GLenum, std::string> shaderSource)
 	{
 		HZ_PROFILE_FUNCTION();
 
 		GLuint program = glCreateProgram();
-		HZ_CORE_ASSERT(shaderSource.size() <= 2, "We only supported 2 shaders for now");
-		std::array<GLenum,2> glShaderIDs;
+		HZ_CORE_ASSERT(shaderSource.size() <= 3, "We only supported 3 shaders for now");
+		std::array<GLenum,3> glShaderIDs;
 		int glShaderIDIndex = 0;
 		for (auto& kv:shaderSource)
 		{
@@ -129,7 +144,7 @@ namespace Hazel {
 				glDeleteShader(shader);
 
 				HZ_CORE_ERROR("{0}", infoLog.data());
-				HZ_CORE_ASSERT(false, "Shader complication failure!");
+				HZ_CORE_ASSERT(false, GetShaderTypeString(type) + " Shader complication failure!");
 
 				break;
 			}
@@ -195,7 +210,7 @@ namespace Hazel {
 		UploadUniformIntArray(name, values,count);
 	}
 
-	void OpenGLShader::SetFloat3(const std::string& name, float value)
+	void OpenGLShader::SetFloat(const std::string& name, float value)
 	{
 		HZ_PROFILE_FUNCTION();
 

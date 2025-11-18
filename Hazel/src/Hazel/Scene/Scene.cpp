@@ -4,6 +4,7 @@
 #include "Components.h"
 #include "ScriptableEntity.h"
 #include "Hazel/Renderer/Renderer2D.h"
+#include "Hazel/Renderer/Renderer3D.h"
 
 #include <glm/glm.hpp>
 
@@ -13,6 +14,9 @@
 #include "box2d/b2_body.h"
 #include "box2d/b2_fixture.h"
 #include "box2d/b2_polygon_shape.h"
+
+//鍚庣画浼樺寲鍒犻櫎
+#include <glad/glad.h>
 
 namespace Hazel {
 
@@ -103,7 +107,7 @@ namespace Hazel {
 		entity.AddComponent<TransformComponent>();
 		auto& tag = entity.AddComponent<TagComponent>();
 		tag.Tag = name.empty() ? "Entity" : name;
-		//name这里用的引用，但是传来的tag的内存在增加组件后是会变化的，所以变化后就会报错
+		//name杩欓噷鐢ㄧ殑寮曠敤锛屼絾鏄紶鏉ョ殑tag鐨勫唴瀛樺湪澧炲姞缁勪欢鍚庢槸浼氬彉鍖栫殑锛屾墍浠ュ彉鍖栧悗灏变細鎶ラ敊
 
 		return entity;
 	}
@@ -156,6 +160,7 @@ namespace Hazel {
 		delete m_PhysicsWorld;
 		m_PhysicsWorld = nullptr;
 	}
+
 
 	void Scene::OnUpdateRuntime(Timestep ts)
 	{
@@ -242,7 +247,36 @@ namespace Hazel {
 	}
 	void Scene::OnUpdateEditor(Timestep ts, EditorCamera& camera)
 	{
-		Renderer2D::BeginScene(camera);
+		//Renderer2D::BeginScene(camera);
+		Renderer3D::BeginScene(camera);
+		glm::vec3 lightPosition;
+		Light* lightScene = nullptr;
+
+		{
+			auto view = m_Registry.view<TransformComponent, LightComponent>();
+			for (auto entity : view)
+			{
+				auto [transform, light] = view.get<TransformComponent, LightComponent>(entity);
+				lightScene = &light.light;
+				lightPosition = transform.Translation;
+				Renderer3D::SetLight(transform.Translation);
+			}
+		}
+
+		lightScene->SetLightPosition(lightPosition);
+
+		Renderer3D::BeginSceneShadow(*lightScene);
+		
+		//Renderer3D::BeginScene(camera);
+		{
+			auto view = m_Registry.view<TransformComponent, ModelComponent>();
+			for (auto entity : view)
+			{
+				auto [transform, model] = view.get<TransformComponent, ModelComponent>(entity);
+
+				Renderer3D::DrawModel(transform.GetTransform(), *model.model.get(),(int)entity);
+			}
+		}
 
 		{
 			auto group = m_Registry.group<TransformComponent>(entt::get<SpriteRendererComponent>);
@@ -251,21 +285,54 @@ namespace Hazel {
 			{
 				auto [transform, sprite] = group.get<TransformComponent, SpriteRendererComponent>(entity);
 
-				Renderer2D::DrawQuad(transform.GetTransform(), sprite.Color, (int)entity);
+				//Renderer2D::DrawQuad(transform.GetTransform(), sprite.Color, (int)entity);
+				Renderer3D::DrawRotateQuad(transform.GetTransform(), sprite.Texture, sprite.Color);
+			}
+		}
+		
+
+		Renderer3D::EndScene();
+
+		m_Framebuffer->Bind();
+		
+		
+		Renderer3D::BeginScene(camera);
+		{
+			auto view = m_Registry.view<TransformComponent, ModelComponent>();
+			for (auto entity : view)
+			{
+				auto [transform, model] = view.get<TransformComponent, ModelComponent>(entity);
+
+				Renderer3D::DrawModel(transform.GetTransform(), *model.model.get(), (int)entity);
 			}
 		}
 
 		{
-			auto view = m_Registry.view<TransformComponent, CircleRendererComponent>();
-			for (auto entity : view)
-			{
-				auto [transform, circle] = view.get<TransformComponent, CircleRendererComponent>(entity);
+			auto group = m_Registry.group<TransformComponent>(entt::get<SpriteRendererComponent>);
 
-				Renderer2D::DrawCircle(transform.GetTransform(), circle.Color, circle.Thickness, circle.Fade, (int)entity);
+			for (auto entity : group)
+			{
+				auto [transform, sprite] = group.get<TransformComponent, SpriteRendererComponent>(entity);
+
+				//Renderer2D::DrawQuad(transform.GetTransform(), sprite.Color, (int)entity);
+				Renderer3D::DrawRotateQuad(transform.GetTransform(), sprite.Texture, sprite.Color);
 			}
 		}
 
-		Renderer2D::EndScene();
+		{
+			auto view = m_Registry.view<TransformComponent, LightComponent>();
+			for (auto entity : view)
+			{
+				auto [transform, light] = view.get<TransformComponent, LightComponent>(entity);
+				Renderer3D::DrawRotateQuad(transform.GetTransform(), nullptr);
+			}
+		}
+
+		Renderer3D::EndScene();
+
+		Renderer3D::DrawSkyBox(*skyBox.get());
+
+
 	}
 	void Scene::OnViewportResize(uint32_t width, uint32_t height)
 	{
@@ -307,6 +374,11 @@ namespace Hazel {
 				return Entity{ entity, this };
 		}
 		return {};
+	}
+
+	void Scene::SetSkyBox(Ref<SkyBox> sky)
+	{
+		skyBox = sky;
 	}
 
 	template<typename T>
@@ -359,6 +431,17 @@ namespace Hazel {
 	template<>
 	void Scene::OnComponentAdded<Rigidbody2DComponent>(Entity entity, Rigidbody2DComponent& component)
 	{
+	}
+
+	template<>
+	void Scene::OnComponentAdded<LightComponent>(Entity entity, LightComponent& component)
+	{
+	}
+
+	template<>
+	void Scene::OnComponentAdded<ModelComponent>(Entity entity, ModelComponent& component)
+	{
+
 	}
 }
 

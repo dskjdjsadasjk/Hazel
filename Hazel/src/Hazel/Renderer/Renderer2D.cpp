@@ -8,6 +8,7 @@
 
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include "Renderer3D.h"
 
 namespace Hazel {
 
@@ -141,7 +142,7 @@ namespace Hazel {
 		s_Data.QuadShader = Shader::Create("assets/shaders/Renderer2D_Quad.glsl");
 		s_Data.CircleShader = Shader::Create("assets/shaders/Renderer2D_Circle.glsl");
 
-		//¸ÄÓÃ¸ÃÓï·¨ºó²»ÐèÒªÒ»¸ö¸ö°ó¶¨layout (binding = 0) uniform sampler2D u_Textures[32];
+		//ï¿½ï¿½ï¿½Ã¸ï¿½ï¿½ï·¨ï¿½ï¿½ï¿½ï¿½ÒªÒ»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½layout (binding = 0) uniform sampler2D u_Textures[32];
 		//s_Data.QuadShader->Bind();
 		//s_Data.QuadShader->SetIntArray("u_Textures", samplers, s_Data.MaxTexturesSlots);
 
@@ -153,7 +154,8 @@ namespace Hazel {
 		s_Data.QuadVertexPositions[2] = { 0.5f, 0.5f,0.0f,1.0f };
 		s_Data.QuadVertexPositions[3] = { -0.5f, 0.5f,0.0f,1.0f };
 
-		s_Data.CameraUniformBuffer = UniformBuffer::Create(sizeof(Renderer2DData::CameraData), 0);
+		//æµ‹è¯•
+		s_Data.CameraUniformBuffer = UniformBuffer::Create(sizeof(Renderer2DData::CameraData), 4);
 	}
 	void Renderer2D::Shutdown()
 	{
@@ -721,6 +723,7 @@ namespace Hazel {
 		else
 			DrawQuad(transform, src.Color, entityID);
 	}
+
 
 	void Renderer2D::ResetStats()
 	{

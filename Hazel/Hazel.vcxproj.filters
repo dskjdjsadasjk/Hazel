@@ -1494,6 +1494,11 @@
     <ClInclude Include="vendor\stb_image\stb_image.h">
       <Filter>vendor\stb_image</Filter>
     </ClInclude>
+    <ClInclude Include="src\Hazel\Renderer\Mesh.h" />
+    <ClInclude Include="src\Hazel\Renderer\Model.h" />
+    <ClInclude Include="src\Hazel\Renderer\Renderer3D.h" />
+    <ClInclude Include="src\Hazel\Scene\SkyBox.h" />
+    <ClInclude Include="src\Hazel\Renderer\Light.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Hazel\Core\Application.cpp">
@@ -1616,5 +1621,13 @@
     <ClCompile Include="vendor\stb_image\stb_image.cpp">
       <Filter>vendor\stb_image</Filter>
     </ClCompile>
+    <ClCompile Include="src\Hazel\Renderer\Mesh.cpp" />
+    <ClCompile Include="src\Hazel\Renderer\Model.cpp" />
+    <ClCompile Include="src\Hazel\Renderer\Renderer3D.cpp" />
+    <ClCompile Include="src\Hazel\Scene\SkyBox.cpp" />
+    <ClCompile Include="src\Hazel\Renderer\Light.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
   </ItemGroup>
 </Project>

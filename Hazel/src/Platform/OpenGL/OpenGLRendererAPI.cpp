@@ -4,6 +4,9 @@
 #include <glad/glad.h>
 
 namespace Hazel {
+
+
+
 	void OpenGLRendererAPI::Init()
 	{
 		HZ_PROFILE_FUNCTION(); 
@@ -13,13 +16,26 @@ namespace Hazel {
 
 		glEnable(GL_DEPTH_TEST);
 	}
+
 	void OpenGLRendererAPI::SetViewport(uint32_t x, uint32_t y, uint32_t width, uint32_t height)
 	{
 		glViewport(x, y, width, height);
 	}
+
 	void Hazel::OpenGLRendererAPI::SetClearColor(const glm::vec4& color)
 	{
 		glClearColor(color.r, color.g, color.b, color.a);
+	}
+
+	void OpenGLRendererAPI::SetDepth(DepthType depth)
+	{
+		switch (depth)
+		{
+			case DepthType::LESS:
+				glDepthFunc(GL_LESS); break;
+			case DepthType::LEQUAL:
+				glDepthFunc(GL_LEQUAL); break;
+		}
 	}
 
 	void Hazel::OpenGLRendererAPI::Clear()
@@ -32,6 +48,12 @@ namespace Hazel {
 		vertexArray->Bind();
 		uint32_t count = indexCount ? indexCount : vertexArray->GetIndexBuffers()->GetCount();
 		glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_INT, nullptr);
+		glBindTexture(GL_TEXTURE_2D, 0);
+	}
+
+	void Hazel::OpenGLRendererAPI::DrawArrays(uint32_t arrayBegin,uint32_t arrayCount)
+	{
+		glDrawArrays(GL_TRIANGLES, arrayBegin, arrayCount);
 		glBindTexture(GL_TEXTURE_2D, 0);
 	}
 }

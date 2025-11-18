@@ -2,7 +2,7 @@
 
 #include "Hazel/Renderer/Framebuffer.h"
 
-namespace Hazel{
+namespace Hazel {
 
 	class OpenGLFramebuffer :public Framebuffer
 	{
@@ -19,11 +19,12 @@ namespace Hazel{
 		virtual int ReadPixel(uint32_t attachementIndex, int x, int y) override;
 
 		virtual uint32_t GetColorAttachmentRendererID(uint32_t index = 0) const override { HZ_CORE_ASSERT(index < m_ColorAttachments.size(), "RendererID > size"); return m_ColorAttachments[index]; }
+		virtual uint32_t GetDepthAttachmentRendererID() const override { return m_DepthAttachment; };
 		virtual void ClearAttachment(uint32_t attachmentIndex, int value) override;
 
-		virtual const FramebufferSpecification& GetSpecification() const override {return m_Specification;};
+		virtual const FramebufferSpecification& GetSpecification() const override { return m_Specification; };
 	private:
-		uint32_t m_RendererID=0;
+		uint32_t m_RendererID = 0;
 		FramebufferSpecification m_Specification;
 
 		std::vector<FramebufferTextureSpecification> m_ColorAttachmentSpecifications;

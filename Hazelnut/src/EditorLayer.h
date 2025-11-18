@@ -5,6 +5,8 @@
 #include "Panels/ContentBrowserPanel.h"
 #include "Hazel/Renderer/EditorCamera.h"
 
+#include "Hazel/Renderer/Model.h"
+
 namespace Hazel
 {
 	class EditorLayer :public Layer
@@ -42,6 +44,7 @@ namespace Hazel
 		Ref<VertexArray> m_SquareVA;
 		Ref<Shader> m_FlatColorShader;
 		Ref<Framebuffer> m_Framebuffer;
+		Ref<Framebuffer> m_ShadowFramebuffer;
 
 		Entity m_SquareEntity;
 		Entity m_SecondCamera;
@@ -77,6 +80,9 @@ namespace Hazel
 		ContentBrowserPanel m_ContentBrowserPanel;
 
 		Ref<Texture2D> m_IconPlay, m_IconStop;
+
+		Model ourModel;
+		float frameRate;
 	};
 }
 

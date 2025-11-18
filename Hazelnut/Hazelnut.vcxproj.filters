@@ -24,4 +24,20 @@
       <Filter>Panels</Filter>
     </ClCompile>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+    <None Include="assets\shaders\Renderer3D_Mesh.glsl" />
+    <None Include="assets\shaders\Renderer3D_SkyBox.glsl" />
+    <None Include="assets\shaders\Blinn-Phong.glsl" />
+    <None Include="assets\shaders\ShadowDepth.glsl" />
+    <None Include="assets\shaders\Renderer3D_Quad.glsl" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="Resources\SkyBox\back.jpg" />
+    <Image Include="Resources\SkyBox\bottom.jpg" />
+    <Image Include="Resources\SkyBox\front.jpg" />
+    <Image Include="Resources\SkyBox\left.jpg" />
+    <Image Include="Resources\SkyBox\right.jpg" />
+    <Image Include="Resources\SkyBox\top.jpg" />
+  </ItemGroup>
 </Project>

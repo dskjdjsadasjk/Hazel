@@ -3,6 +3,8 @@
 #include "SceneCamera.h"
 #include "Hazel/Core/UUID.h"
 #include "Hazel/Renderer/Texture.h"
+#include "Hazel/Renderer/Light.h"
+#include "Hazel/Renderer/Model.h"
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -57,7 +59,7 @@ namespace Hazel {
 	struct SpriteRendererComponent
 	{
 		glm::vec4 Color={ 1.0f,1.0f,1.0f,1.0f };
-		Ref<Texture2D> Texture;
+		Ref<Texture2D> Texture = nullptr;
 		float TilingFactor = 1.0f;
 
 		SpriteRendererComponent() = default;
@@ -77,7 +79,7 @@ namespace Hazel {
 		CircleRendererComponent(const CircleRendererComponent&) = default;
 	};
 
-	struct  CameraComponent
+	struct CameraComponent
 	{
 		SceneCamera Camera;
 		bool Primary = true;
@@ -155,5 +157,21 @@ namespace Hazel {
 
 		BoxCollider2DComponent() = default;
 		BoxCollider2DComponent(const BoxCollider2DComponent&) = default;
+	};
+
+	struct LightComponent
+	{
+		Light light;
+
+		LightComponent() = default;
+		LightComponent(const LightComponent&) = default;
+	};
+
+	struct ModelComponent
+	{
+		Ref<Model> model;
+
+		ModelComponent() = default;
+		ModelComponent(const ModelComponent&) = default;
 	};
 }
