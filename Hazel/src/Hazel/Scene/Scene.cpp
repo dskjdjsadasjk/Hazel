@@ -90,7 +90,8 @@ namespace Hazel {
 		CopyComponent<NativeScriptComponent>(dstSceneRegistr, srcSceneRegistry, enttMap);
 		CopyComponent<Rigidbody2DComponent>(dstSceneRegistr, srcSceneRegistry, enttMap);
 		CopyComponent<BoxCollider2DComponent>(dstSceneRegistr, srcSceneRegistry, enttMap);
-
+		CopyComponent<LightComponent>(dstSceneRegistr, srcSceneRegistry, enttMap);
+		CopyComponent<ModelComponent>(dstSceneRegistr, srcSceneRegistry, enttMap);
 
 		return newScene;
 	}
@@ -107,7 +108,7 @@ namespace Hazel {
 		entity.AddComponent<TransformComponent>();
 		auto& tag = entity.AddComponent<TagComponent>();
 		tag.Tag = name.empty() ? "Entity" : name;
-		//name这里用的引用，但是传来的tag的内存在增加组件后是会变化的，所以变化后就会报错
+		//name这里用的引用，如果是传的tag的name,但是传来的tag的内存在增加组件后是会变化的，所以变化后就会报错
 
 		return entity;
 	}
@@ -248,7 +249,7 @@ namespace Hazel {
 	void Scene::OnUpdateEditor(Timestep ts, EditorCamera& camera)
 	{
 		//Renderer2D::BeginScene(camera);
-		Renderer3D::BeginScene(camera);
+		//Renderer3D::BeginScene(camera);
 		glm::vec3 lightPosition;
 		Light* lightScene = nullptr;
 
@@ -259,13 +260,12 @@ namespace Hazel {
 				auto [transform, light] = view.get<TransformComponent, LightComponent>(entity);
 				lightScene = &light.light;
 				lightPosition = transform.Translation;
-				Renderer3D::SetLight(transform.Translation);
+				Renderer3D::SetLight(transform.Translation, light.light);
 			}
 		}
 
-		lightScene->SetLightPosition(lightPosition);
 
-		Renderer3D::BeginSceneShadow(*lightScene);
+		Renderer3D::BeginSceneShadow();
 		
 		//Renderer3D::BeginScene(camera);
 		{
@@ -294,7 +294,6 @@ namespace Hazel {
 		Renderer3D::EndScene();
 
 		m_Framebuffer->Bind();
-		
 		
 		Renderer3D::BeginScene(camera);
 		{
@@ -362,6 +361,8 @@ namespace Hazel {
 		CopyComponentIfExists<NativeScriptComponent>(newEntity, entity);
 		CopyComponentIfExists<Rigidbody2DComponent>(newEntity, entity);
 		CopyComponentIfExists<BoxCollider2DComponent>(newEntity, entity);
+		CopyComponentIfExists<LightComponent>(newEntity, entity);
+		CopyComponentIfExists<ModelComponent>(newEntity, entity);
 	}
 
 	Entity Scene::GetPrimaryCameraEntity()

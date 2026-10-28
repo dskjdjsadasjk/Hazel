@@ -21,10 +21,10 @@ namespace Hazel {
 		static void Init();
 
 		static void BeginScene(const EditorCamera& camera);
-		static void BeginSceneShadow(Light& light);
+		static void BeginSceneShadow();
 		static void EndScene();
 		static void StartBatch();
-		static void SetLight(const glm::vec3& position);
+		static void SetLight(const glm::vec3& position, Light& light);
 
 		static void DrawRotateQuad(const glm::mat4& transform, const Ref<Texture2D>& texture, const glm::vec4& tintColor = glm::vec4(1.0f), float tilingFactor=1.0f);
 

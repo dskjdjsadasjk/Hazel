@@ -7,8 +7,6 @@
 #include "RenderCommand.h"
 #include "Framebuffer.h"
 
-//É¾³ý
-#include <glad/glad.h>
 namespace Hazel {
 
 	struct QuadVertex
@@ -79,6 +77,9 @@ namespace Hazel {
 		struct LightData
 		{
 			glm::vec3 LightPosition;
+			glm::vec3 lightColor;
+			float radius;
+			float intensity;
 		};
 		LightData LightBuffer;
 		Ref<UniformBuffer> LightUniformBuffer;
@@ -94,7 +95,7 @@ namespace Hazel {
 	void Renderer3D::Init()
 	{
 		s_Data.CameraUniformBuffer = UniformBuffer::Create(sizeof(Renderer3DData::CameraData), 0);
-		s_Data.LightUniformBuffer = UniformBuffer::Create(sizeof(Renderer3DData::LightData), 1);
+		s_Data.LightUniformBuffer = UniformBuffer::Create(sizeof(glm::vec3), 1);
 		s_Data.ViewPosUniformBuffer = UniformBuffer::Create(sizeof(glm::vec3), 2);
 
 		s_Data.QuadShader = Shader::Create("assets/shaders/Renderer3D_Quad.glsl");
@@ -221,6 +222,7 @@ namespace Hazel {
 		s_Data.viewPosition = camera.GetPosition();
 		s_Data.ViewPosUniformBuffer->SetData(&s_Data.viewPosition, sizeof(glm::vec3));
 		s_Data.ShadowCubeTexture->Bind(2);
+		s_Data.TriangleShader->SetFloat("far_plane", s_Data.LightBuffer.radius);
 
 		glm::mat4 view = glm::mat4(glm::mat3(camera.GetViewMatrix()));
 		glm::mat4 projection = camera.GetProjection();
@@ -231,17 +233,17 @@ namespace Hazel {
 		StartBatch();
 	}
 
-	void Renderer3D::BeginSceneShadow(Light& light)
+	void Renderer3D::BeginSceneShadow()
 	{
 		s_Data.IsShadow = true;
 		s_Data.ShadowFramebuffer->Bind();
 		RenderCommand::SetClearColor({ 0.1f,0.1f,0.1f,1 });
 		RenderCommand::Clear();
 
-		glm::vec3 lightPos = light.GetLightPosition();
+		glm::vec3 lightPos = s_Data.LightBuffer.LightPosition;
 		s_Data.ShadowDepthShader->Bind();
 		float near_plane = 0.01f;
-		float far_plane = 25.0f;
+		float far_plane = s_Data.LightBuffer.radius;
 		glm::mat4 shadowProj = glm::perspective(glm::radians(90.0f), (float)s_Data.ShadowWidth / (float)s_Data.ShadowHeight, near_plane, far_plane);
 		std::vector<glm::mat4> shadowTransforms;
 		shadowTransforms.push_back(shadowProj * glm::lookAt(lightPos, lightPos + glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f)));
@@ -255,6 +257,8 @@ namespace Hazel {
 			s_Data.ShadowDepthShader->SetMat4("shadowMatrices[" + std::to_string(i) + "]", shadowTransforms[i]);
 		s_Data.ShadowDepthShader->SetFloat("far_plane", far_plane);
 		s_Data.ShadowDepthShader->SetFloat3("lightPos", lightPos);
+
+		StartBatch();
 	}
 
 	void Renderer3D::StartBatch()
@@ -265,13 +269,15 @@ namespace Hazel {
 		s_Data.TextureSlotIndex = 1;
 	}
 
-	void Renderer3D::SetLight(const glm::vec3& position)
+	void Renderer3D::SetLight(const glm::vec3& position, Light& light)
 	{
 		s_Data.LightBuffer.LightPosition = position;
-		s_Data.LightUniformBuffer->SetData(&s_Data.LightBuffer, sizeof(Renderer3DData::LightData));
-		float near_plane = 1.0f;
-		float far_plane = 25.0f;
-		s_Data.TriangleShader->SetFloat("far_plane", far_plane);
+		s_Data.LightBuffer.lightColor = light.GetLightColor();
+		s_Data.LightBuffer.intensity = light.GetIntentisy();
+		s_Data.LightBuffer.radius = light.GetLightRange();
+		s_Data.LightUniformBuffer->SetData(&s_Data.LightBuffer.LightPosition, sizeof(glm::vec3));
+
+		s_Data.TriangleShader->SetFloat("far_plane", s_Data.LightBuffer.radius);
 	}
 
 	void Renderer3D::Flush()
